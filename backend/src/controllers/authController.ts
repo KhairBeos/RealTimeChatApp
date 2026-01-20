@@ -37,7 +37,7 @@ export async function authCallBack(req: Request, res: Response, next: NextFuncti
 
             user = await User.create({
                 clerkId: clerkUserId,
-                name: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ""}`.trim() : clerkUser.emailAddresses[0]?.emailAddress.split("@")[0],
+                name: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ""}`.trim() : clerkUser.emailAddresses[0]?.emailAddress?.split("@")[0],
                 email: clerkUser.emailAddresses[0]?.emailAddress || "",
                 avatar: clerkUser.imageUrl,
             });

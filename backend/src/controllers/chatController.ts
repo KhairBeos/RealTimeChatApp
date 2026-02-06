@@ -3,7 +3,7 @@ import type { AuthRequest } from "../middleware/auth";
 import { Chat } from "../models/Chat";
 import { Types } from "mongoose";
 
-export async function getChats(req: AuthRequest, res: Response, next:NextFunction) {
+export async function getChats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
         const userId = req.userId;
 
@@ -28,7 +28,7 @@ export async function getChats(req: AuthRequest, res: Response, next:NextFunctio
     }
 }
 
-export async function getOrCreateChat(req: AuthRequest, res: Response, next:NextFunction) {
+export async function getOrCreateChat(req: AuthRequest, res: Response, next: NextFunction) {
     try {
         const userId = req.userId;
         const { participantId: participantIdParam } = req.params;

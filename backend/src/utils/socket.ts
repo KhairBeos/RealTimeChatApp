@@ -5,10 +5,6 @@ import { Message } from "../models/Message";
 import { User } from "../models/User";
 import { Chat } from "../models/Chat";
 
-interface AuthenticatedSocket extends Socket {
-    userId: string;
-}
-
 export const onlineUsers: Map<string,string> = new Map();
 
 export const initializeSocket = (httpServer: HttpServer) => {
@@ -16,8 +12,8 @@ export const initializeSocket = (httpServer: HttpServer) => {
     const allowedOrigins = [
         "http://localhost:8081",
         "http://localhost:5173",
-        process.env.FRONTEND_URL as string || ""
-    ];
+        process.env.FRONTEND_URL,
+    ].filter(Boolean) as string[];
 
     const io = new SocketServer(httpServer, {
         cors: {
@@ -41,7 +37,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 return next(new Error("Authentication error: User not found"));
             }
 
-            (socket as AuthenticatedSocket).userId = user._id.toString();
+            socket.data.userId = user._id.toString();
 
             next();
         } catch (error) {
@@ -50,7 +46,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
     });
 
     io.on("connection", (socket) => {
-        const userId = (socket as AuthenticatedSocket).userId;
+        const userId = socket.data.userId;
 
         socket.emit("online-users", { userIds: Array.from(onlineUsers.keys()) });
 
@@ -60,8 +56,21 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
         socket.join(`user:${userId}`);
 
-        socket.on("join-chat", (chatId: string ) => {
-            socket.join(`chat:${chatId}`);
+        socket.on("join-chat", async (chatId: string ) => {
+            try {
+                const allowedChat = await Chat.exists({ 
+                    _id: chatId,
+                    participants: userId,
+                });
+
+                if(!allowedChat) {
+                    socket.emit("socket-error", { message: "Access denied to this chat." });
+                    return;
+                }
+                socket.join(`chat:${chatId}`);
+            } catch (error) {
+                socket.emit("socket-error", { message: "Failed to join chat." });
+            }
         });
 
         socket.on("leave-chat", (chatId: string) => {
@@ -92,11 +101,11 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 chat.lastMessageAt = new Date();
                 await chat.save();
 
-                await message.populate("sender", "name email avatar");
-                io.to(`chat:${chatId}`).emit("new-message", { message });
+                await message.populate("sender", "name avatar");
+                io.to(`chat:${chatId}`).emit("new-message", message );
 
                 for(const participantId of chat.participants) {
-                    io.to(`user:${participantId}`).emit("new-message", { message });
+                    io.to(`user:${participantId}`).emit("new-message", message );
                 }
             } catch (error) {
                 socket.emit("socket-error", { message: "Failed to send message." });

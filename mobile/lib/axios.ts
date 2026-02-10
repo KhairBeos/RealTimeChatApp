@@ -1,56 +1,48 @@
-import axios from 'axios';
-import { useAuth } from '@clerk/clerk-expo';
-import { useEffect } from 'react';
-import * as Sentry from '@sentry/react-native';
+import axios from "axios";
+import * as Sentry from "@sentry/react-native";
+import { useAuth } from "@clerk/clerk-expo";
+import { useCallback } from "react";
 
 const API_BASE_URL = "https://realtimechatapp-j9ri0.sevalla.app/";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { "Content-Type": "application/json" },
 });
+
+// Response interceptor registered once
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      Sentry.logger.error(
+        Sentry.logger
+          .fmt`API request failed: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+        { status: error.response.status, endpoint: error.config?.url, method: error.config?.method }
+      );
+    } else if (error.request) {
+      Sentry.logger.warn("API request failed - no response", {
+        endpoint: error.config?.url,
+        method: error.config?.method,
+      });
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const useAxios = () => {
   const { getToken } = useAuth();
-  useEffect(() => {
-    const requestInterceptor = api.interceptors.request.use(async (config) => {
-    const token = await getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    return config;
-    });
 
-    const responseInterceptor = api.interceptors.response.use(
-        (response) => response, 
-        (error) => {
-        if(error.response) {
-            Sentry.logger.error(
-                Sentry.logger.fmt`API request failed: ${error.config.method?.toUpperCase()} ${error.config.url} - Status: ${error.response.status}`,
-                {
-                    status: error.response.status,
-                    method: error.config?.method,
-                    url: error.config?.url,
-                }
-            )
-        } else if (error.request) {
-            Sentry.logger.warn("No response received for API request", {
-                method: error.config?.method,
-                url: error.config?.url,
-            });
-        }
+  const apiWithAuth = useCallback(
+    async <T>(config: Parameters<typeof api.request>[0]) => {
+      const token = await getToken();
+      return api.request<T>({
+        ...config,
+        headers: { ...config.headers, ...(token && { Authorization: `Bearer ${token}` }) },
+      });
+    },
+    [getToken]
+  );
 
-        return Promise.reject(error);
-    });
-
-    return () => {
-      api.interceptors.request.eject(requestInterceptor);
-      api.interceptors.response.eject(responseInterceptor);
-    };
-  }, [getToken]);
-
-    return api;
-}
+  return { api, apiWithAuth };
+};

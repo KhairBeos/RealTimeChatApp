@@ -14,14 +14,14 @@ function useAuthSocial() {
       const { createdSessionId, setActive } = await startSSOFlow({ strategy });
       
       if(!createdSessionId || !setActive) {
-        const provider = strategy === "oauth_google" ? "Google" : "Github";
+        const provider = strategy === "oauth_google" ? "Google" : "GitHub";
         Alert.alert("Sign-in incomplete", `Failed to sign in with ${provider}. Please try again.`);
         return;
       }
       await setActive({ session: createdSessionId });
     } catch (error) {
       console.log("Error in social auth:", error);
-      const provider = strategy === "oauth_google" ? "Google" : "Github";
+      const provider = strategy === "oauth_google" ? "Google" : "GitHub";
       Alert.alert("Error", `Failed to sign in with ${provider}. Please try again.`);
     } finally {
       setLoadingStrategy(null);

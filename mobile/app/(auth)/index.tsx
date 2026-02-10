@@ -79,7 +79,7 @@ const AuthScreen = () => {
                   style={{ width: 20, height: 20 }}
                   contentFit='contain'
                 />
-                <Text className='text-gray-900 font-semibold text-sm'>Github</Text>
+                <Text className='text-gray-900 font-semibold text-sm'>GitHub</Text>
               </>
               )}
             </Pressable>

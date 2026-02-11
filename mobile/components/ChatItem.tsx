@@ -9,7 +9,11 @@ const ChatItem = ({ chat, onPress }: { chat: Chat; onPress: () => void }) => {
   const isTyping = false;
   const hasUnreadMessages = false;
   return (
-    <Pressable className="flex-row items-center py-3 active:opacity-70" onPress={onPress}>
+    <Pressable className="flex-row items-center py-3 active:opacity-70" 
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Chat with ${participants.name}`}
+    >
       {/* Avatar with online status indicator */}
       <View className="relative">
         <Image source={participants.avatar} style={{ width: 56, height: 56, borderRadius: 999 }} />

@@ -8,8 +8,8 @@ export const useChats = () => {
   return useQuery({
     queryKey: ["chats"],
     queryFn: async () => {
-      const { data } = await apiWithAuth<Chat[]>({ method: "GET", url: "/chats" });
-      return data;
+      const { data } = await apiWithAuth<{ chats: Chat[] }>({ method: "GET", url: "/chats" });
+      return data.chats;
     },
   });
 };

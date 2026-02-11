@@ -30,8 +30,8 @@ export interface ChatLastMessage {
 
 export interface Chat {
   _id: string;
-  participants: MessageSender;
-  lastMessage: ChatLastMessage | null;
+  participant: MessageSender | null;
+  latestMessage: ChatLastMessage | null;
   lastMessageAt: string;
   createdAt: string;
 }

@@ -19,10 +19,11 @@ const ChatsTab = () => {
   }
 
   if (error) {
+    console.error("Error loading chats:", error);
     return (
       <View className="flex-1 items-center justify-center bg-surface">
-        <Text className="text-red-500 text-3xl">Error loading chats.</Text>
-        <Pressable onPress={() => refetch()} className="mt-4 px-4 py-2 rounded-lg bg-primary">
+        <Text className="text-3xl text-red-500">Error loading chats.</Text>
+        <Pressable onPress={() => refetch()} className="mt-4 rounded-lg bg-primary px-4 py-2">
           <Text className="text-foreground">Retry</Text>
         </Pressable>
       </View>
@@ -34,9 +35,9 @@ const ChatsTab = () => {
       pathname: "/chat/[id]",
       params: {
         id: chat._id,
-        participantId: chat.participants._id,
-        name: chat.participants.name,
-        avatar: chat.participants.avatar,
+        participantId: chat.participant?._id ?? "",
+        name: chat.participant?.name ?? "Unknown",
+        avatar: chat.participant?.avatar ?? "",
       },
     });
   };

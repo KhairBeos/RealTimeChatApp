@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import axios from "axios";
 import { useCallback } from "react";
 
-const API_BASE_URL = "https://realtimechatapp-j9ri0.sevalla.app/";
+const API_BASE_URL = "https://realtimechatapp-j9ri0.sevalla.app/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

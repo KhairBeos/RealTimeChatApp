@@ -5,6 +5,7 @@ import { Chat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ChatsTab = () => {
   const router = useRouter();
@@ -43,7 +44,7 @@ const ChatsTab = () => {
   };
 
   return (
-    <View className="flex-1 bg-surface">
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <FlatList
         data={chats}
         keyExtractor={(item) => item._id}
@@ -64,7 +65,7 @@ const ChatsTab = () => {
           />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 export default ChatsTab;

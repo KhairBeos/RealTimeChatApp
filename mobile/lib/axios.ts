@@ -1,6 +1,6 @@
-import axios from "axios";
-import * as Sentry from "@sentry/react-native";
 import { useAuth } from "@clerk/clerk-expo";
+import * as Sentry from "@sentry/react-native";
+import axios from "axios";
 import { useCallback } from "react";
 
 const API_BASE_URL = "https://realtimechatapp-j9ri0.sevalla.app/";
@@ -18,7 +18,11 @@ api.interceptors.response.use(
       Sentry.logger.error(
         Sentry.logger
           .fmt`API request failed: ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
-        { status: error.response.status, endpoint: error.config?.url, method: error.config?.method }
+        {
+          status: error.response.status,
+          endpoint: error.config?.url,
+          method: error.config?.method,
+        },
       );
     } else if (error.request) {
       Sentry.logger.warn("API request failed - no response", {
@@ -27,7 +31,7 @@ api.interceptors.response.use(
       });
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export const useAxios = () => {
@@ -41,7 +45,7 @@ export const useAxios = () => {
         headers: { ...config.headers, ...(token && { Authorization: `Bearer ${token}` }) },
       });
     },
-    [getToken]
+    [getToken],
   );
 
   return { api, apiWithAuth };

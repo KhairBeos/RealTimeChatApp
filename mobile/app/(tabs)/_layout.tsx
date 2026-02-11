@@ -1,6 +1,6 @@
-import { Redirect, Tabs } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
-import { useAuth } from '@clerk/clerk-expo'
+import { useAuth } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
+import { Redirect, Tabs } from "expo-router";
 
 const TabsLayout = () => {
   const { isSignedIn, isLoaded } = useAuth();
@@ -17,7 +17,7 @@ const TabsLayout = () => {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle:{
+        tabBarStyle: {
           backgroundColor: "#0D0D0F",
           borderTopColor: "#1A1A1D",
           borderTopWidth: 1,
@@ -28,39 +28,35 @@ const TabsLayout = () => {
         tabBarInactiveTintColor: "#6B6B70",
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: "600",
         },
       }}
     >
-      <Tabs.Screen 
-        name="index" 
-        options={{ 
-          title: 'Chats',
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Chats",
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+              name={focused ? "chatbubbles" : "chatbubbles-outline"}
               size={size}
               color={color}
             />
-          )
-        }} 
+          ),
+        }}
       />
 
-      <Tabs.Screen 
-        name="profile" 
-        options={{ 
-          title: 'Profile',
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={size}
-              color={color}
-            />
-          )
-        }} 
+            <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
+          ),
+        }}
       />
     </Tabs>
-  )
-}
+  );
+};
 
-export default TabsLayout
+export default TabsLayout;

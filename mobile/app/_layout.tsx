@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "../global.css";
+import { Socket } from "socket.io-client";
+import SocketConnection from "@/components/SocketConnection";
 
 Sentry.init({
   dsn: "https://60a3d4c872812d22e0a584fc90012197@o4510862557970432.ingest.us.sentry.io/4510862564261888",
@@ -41,6 +43,7 @@ export default Sentry.wrap(function RootLayout() {
     <ClerkProvider tokenCache={tokenCache}>
       <QueryClientProvider client={queryClient}>
         <AuthSync />
+        <SocketConnection />
         <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0D0D0F" } }}>
           <Stack.Screen name="(auth)" options={{ animation: "fade" }} />

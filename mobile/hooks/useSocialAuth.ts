@@ -7,7 +7,7 @@ function useAuthSocial() {
   const { startSSOFlow } = useSSO();
 
   const handleSocialAuth = async (strategy: "oauth_google" | "oauth_github") => {
-    if (loadingStrategy) return; // Prevent multiple simultaneous auth attempts
+    if (loadingStrategy) return; 
     setLoadingStrategy(strategy);
 
     try {

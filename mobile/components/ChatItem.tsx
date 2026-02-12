@@ -1,3 +1,4 @@
+import { useSocketStore } from "@/lib/socket";
 import { Chat } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { Image } from "expo-image";
@@ -5,9 +6,17 @@ import { Pressable, Text, View } from "react-native";
 
 const ChatItem = ({ chat, onPress }: { chat: Chat; onPress: () => void }) => {
   const participant = chat.participant;
-  const isOnline = true;
-  const isTyping = false;
-  const hasUnreadMessages = false;
+
+  // Dùng selector để chỉ subscribe vào các fields cần thiết
+  // Tránh re-render khi những field khác thay đổi (socket, isConnected, queryClient...)
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
+  const typingUsers = useSocketStore((state) => state.typingUsers);
+  const unreadChats = useSocketStore((state) => state.unreadChats);
+
+  const isOnline = participant ? onlineUsers.has(participant._id) : false;
+  const isTyping = participant ? typingUsers.get(chat._id) === participant._id : false;
+  const hasUnreadMessages = unreadChats.has(chat._id);
+
   return (
     <Pressable
       className="flex-row items-center py-3 active:opacity-70"

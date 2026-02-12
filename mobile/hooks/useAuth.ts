@@ -1,6 +1,6 @@
 import { useAxios } from "@/lib/axios";
 import { User } from "@/types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export const useAuthCallback = () => {
   const { apiWithAuth } = useAxios();
@@ -12,4 +12,16 @@ export const useAuthCallback = () => {
     },
   });
   return mutation;
+};
+
+export const useCurrentUser = () => {
+  const { apiWithAuth } = useAxios();
+
+  return useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const { data } = await apiWithAuth<User>({ url: "/auth/me", method: "GET" });
+      return data;
+    },
+  });
 };

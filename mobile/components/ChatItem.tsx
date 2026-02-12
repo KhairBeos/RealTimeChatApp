@@ -6,7 +6,12 @@ import { Pressable, Text, View } from "react-native";
 
 const ChatItem = ({ chat, onPress }: { chat: Chat; onPress: () => void }) => {
   const participant = chat.participant;
-  const { onlineUsers, typingUsers, unreadChats } = useSocketStore();
+
+  // Dùng selector để chỉ subscribe vào các fields cần thiết
+  // Tránh re-render khi những field khác thay đổi (socket, isConnected, queryClient...)
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
+  const typingUsers = useSocketStore((state) => state.typingUsers);
+  const unreadChats = useSocketStore((state) => state.unreadChats);
 
   const isOnline = participant ? onlineUsers.has(participant._id) : false;
   const isTyping = participant ? typingUsers.get(chat._id) === participant._id : false;

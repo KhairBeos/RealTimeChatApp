@@ -13,7 +13,7 @@ const NewChatScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: allUsers, isLoading } = useUser();
   const { mutate: getOrCreateChat, isPending: isGettingOrCreateChat } = useGetOrCreateChat();
-  const { onlineUsers } = useSocketStore();
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
 
   const users = (allUsers ?? []).filter((u) => {
     if (!searchQuery.trim()) return true;

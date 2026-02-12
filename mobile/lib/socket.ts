@@ -94,7 +94,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
           if (chat._id === message.chat) {
             return {
               ...chat,
-              lastMessage: {
+              latestMessage: {
                 _id: message._id,
                 text: message.text,
                 sender: senderId,
@@ -168,7 +168,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.emit("join-chat", chatId);
     }
   },
-  
+
   leaveChat: (chatId) => {
     const { socket } = get();
     set({ currentChatId: null });
@@ -176,7 +176,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.emit("leave-chat", chatId);
     }
   },
-  
+
   sendMessage: (chatId, text, currentUser) => {
     const { socket, queryClient } = get();
     if (!socket?.connected || !queryClient) return;
@@ -196,23 +196,23 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       return [...old, optimisticMessage];
     });
 
-    socket.emit("send-message", { chatId, text });
-
-    Sentry.logger.info("Message sent successfully", { chatId, messageLength: text.length });
-
-    const errorHandler = (error: { message: string }) => {
+    socket.emit("send-message", { chatId, text }, (response?: { error?: { message: string } }) => {
+      if (!response?.error) {
+        return;
+      }
       Sentry.logger.error("Failed to send message", {
         chatId,
-        error: error.message,
+        error: response.error.message,
       });
       queryClient.setQueryData<Message[]>(["messages", chatId], (old) => {
         if (!old) return [];
         return old.filter((m) => m._id !== tempId);
       });
-      socket.off("socket-error", errorHandler);
-    };
-
-    socket.once("socket-error", errorHandler);
+    });
+    Sentry.logger.info("Message sent successfully", {
+      chatId,
+      messageLength: text.length,
+    });
   },
 
   sendTyping: (chatId, isTyping) => {

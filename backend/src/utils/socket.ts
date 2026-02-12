@@ -33,7 +33,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
       const clerkUserId = session.sub;
 
-      const user = await User.findOne({ clerkUserId });
+      const user = await User.findOne({ clerkId: clerkUserId });
       if (!user) {
         return next(new Error("Authentication error: User not found"));
       }
@@ -82,9 +82,9 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
     socket.on(
       "send-message",
-      async (data: { chatId: string; content: string }) => {
+      async (data: { chatId: string; text: string }) => {
         try {
-          const { chatId, content } = data;
+          const { chatId, text } = data;
 
           const chat = await Chat.findOne({
             _id: chatId,
@@ -101,7 +101,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
           const message = await Message.create({
             chat: chatId,
             sender: userId,
-            text: content,
+            text: text,
           });
 
           chat.lastMessage = message._id;
@@ -121,28 +121,34 @@ export const initializeSocket = (httpServer: HttpServer) => {
     );
 
     socket.on("typing", async (data: { chatId: string; isTyping: boolean }) => {
-      const typingPayload = {
-        userId,
-        chatId: data.chatId,
-        isTyping: data.isTyping,
-      };
-
-      socket.to(`chat:${data.chatId}`).emit("typing", typingPayload);
-
       try {
-        const chat = await Chat.findById(data.chatId);
-        if (chat) {
-          const otherParticipantId = chat.participants.find(
-            (p: any) => p.toString() !== userId,
-          );
-          if (otherParticipantId) {
-            socket
-              .to(`user:${otherParticipantId}`)
-              .emit("typing", typingPayload);
-          }
+        const { chatId, isTyping } = data;
+        const chat = await Chat.findOne({
+          _id: chatId,
+          participants: userId,
+        });
+        if (!chat) {
+          socket.emit("socket-error", {
+            message: "Chat not found or access denied.",
+          });
+          return;
+        }
+        const typingPayload = {
+          userId,
+          chatId,
+          isTyping,
+        };
+        socket.to(`chat:${chatId}`).emit("typing", typingPayload);
+        const otherParticipantId = chat.participants.find(
+          (p: any) => p.toString() !== userId,
+        );
+        if (otherParticipantId) {
+          socket.to(`user:${otherParticipantId}`).emit("typing", typingPayload);
         }
       } catch (error) {
-        socket.emit("socket-error", { message: "Failed to send typing status." });
+        socket.emit("socket-error", {
+          message: "Failed to send typing status.",
+        });
       }
     });
 

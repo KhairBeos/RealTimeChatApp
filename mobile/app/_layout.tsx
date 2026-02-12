@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "../global.css";
-import { Socket } from "socket.io-client";
 import SocketConnection from "@/components/SocketConnection";
 
 Sentry.init({

@@ -9,14 +9,14 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
   TextInput,
+  View,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,21 +38,47 @@ const ChatDetailScreen = () => {
   const { data: currentUser } = useCurrentUser();
   const { data: messages, isLoading } = useMessages(chatId);
 
-  const { joinChat, leaveChat, sendMessage, sendTyping, isConnected, onlineUsers, typingUsers } =
-    useSocketStore();
+  // Dùng selector để chỉ subscribe vào các fields cần thiết
+  // Tránh re-render khi những field khác thay đổi
+  const joinChat = useSocketStore((state) => state.joinChat);
+  const leaveChat = useSocketStore((state) => state.leaveChat);
+  const sendMessage = useSocketStore((state) => state.sendMessage);
+  const sendTyping = useSocketStore((state) => state.sendTyping);
+  const isConnected = useSocketStore((state) => state.isConnected);
+  const onlineUsers = useSocketStore((state) => state.onlineUsers);
+  const typingUsers = useSocketStore((state) => state.typingUsers);
 
   const isOnline = participantId ? onlineUsers.has(participantId) : false;
   const isTyping = typingUsers.get(chatId) === participantId;
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalMessageCountRef = useRef(0);
 
   useEffect(() => {
     if (chatId && isConnected) joinChat(chatId);
 
     return () => {
-      if (chatId) leaveChat(chatId);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      if (chatId) {
+        if (isConnected) {
+          sendTyping(chatId, false);
+        }
+        leaveChat(chatId);
+      }
     };
-  }, [chatId, isConnected, joinChat, leaveChat]);
+  }, [chatId, isConnected, joinChat, leaveChat, sendTyping]);
+
+  // Reset isSending khi message được thêm vào list (tức là server confirmed)
+  useEffect(() => {
+    if (isSending && messages && messages.length > finalMessageCountRef.current) {
+      // Message mới đã được thêm - gửi thành công
+      finalMessageCountRef.current = messages.length;
+      setIsSending(false);
+    }
+  }, [messages, isSending]);
 
   useEffect(() => {
     if (messages && messages.length > 0) {
@@ -85,11 +111,13 @@ const ChatDetailScreen = () => {
         sendTyping(chatId, false);
       }
     },
-    [chatId, isConnected, sendTyping]
+    [chatId, isConnected, sendTyping],
   );
 
   const handleSendMessage = () => {
-    console.log({ isSending, isConnected, currentUser, messageText });
+    if (__DEV__) {
+      console.log({ isSending, isConnected, currentUser, messageText });
+    }
     if (!messageText.trim() || isSending || !isConnected || !currentUser) return;
 
     if (typingTimeoutRef.current) {
@@ -105,8 +133,6 @@ const ChatDetailScreen = () => {
       avatar: currentUser.avatar,
     });
     setMessageText("");
-    setIsSending(false);
-
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
@@ -115,14 +141,14 @@ const ChatDetailScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-2 bg-surface border-b border-surface-light">
+      <View className="flex-row items-center border-b border-surface-light bg-surface px-4 py-2">
         <Pressable onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#F4A261" />
         </Pressable>
-        <View className="flex-row items-center flex-1 ml-2">
+        <View className="ml-2 flex-1 flex-row items-center">
           {avatar && <Image source={avatar} style={{ width: 40, height: 40, borderRadius: 999 }} />}
           <View className="ml-3">
-            <Text className="text-foreground font-semibold text-base" numberOfLines={1}>
+            <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
               {name}
             </Text>
             <Text className={`text-xs ${isTyping ? "text-primary" : "text-muted-foreground"}`}>
@@ -131,10 +157,10 @@ const ChatDetailScreen = () => {
           </View>
         </View>
         <View className="flex-row items-center gap-3">
-          <Pressable className="w-9 h-9 rounded-full items-center justify-center">
+          <Pressable className="h-9 w-9 items-center justify-center rounded-full">
             <Ionicons name="call-outline" size={20} color="#A0A0A5" />
           </Pressable>
-          <Pressable className="w-9 h-9 rounded-full items-center justify-center">
+          <Pressable className="h-9 w-9 items-center justify-center rounded-full">
             <Ionicons name="videocam-outline" size={20} color="#A0A0A5" />
           </Pressable>
         </View>
@@ -144,7 +170,7 @@ const ChatDetailScreen = () => {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "android" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
         <View className="flex-1 bg-surface">
@@ -178,16 +204,16 @@ const ChatDetailScreen = () => {
           )}
 
           {/* Input bar */}
-          <View className="px-3 pb-3 pt-2 bg-surface border-t border-surface-light">
-            <View className="flex-row items-end bg-surface-card rounded-3xl px-3 py-1.5 gap-2">
-              <Pressable className="w-8 h-8 rounded-full items-center justify-center">
+          <View className="border-t border-surface-light bg-surface px-3 pb-3 pt-2">
+            <View className="flex-row items-end gap-2 rounded-3xl bg-surface-card px-3 py-1.5">
+              <Pressable className="h-8 w-8 items-center justify-center rounded-full">
                 <Ionicons name="add" size={22} color="#F4A261" />
               </Pressable>
 
               <TextInput
                 placeholder="Type a message"
                 placeholderTextColor="#6B6B70"
-                className="flex-1 text-foreground text-sm mb-2"
+                className="mb-2 flex-1 text-sm text-foreground"
                 multiline
                 style={{ maxHeight: 100 }}
                 value={messageText}
@@ -197,7 +223,7 @@ const ChatDetailScreen = () => {
               />
 
               <Pressable
-                className="w-8 h-8 rounded-full items-center justify-center bg-primary"
+                className="h-8 w-8 items-center justify-center rounded-full bg-primary"
                 onPress={handleSendMessage}
                 disabled={!messageText.trim() || isSending}
               >

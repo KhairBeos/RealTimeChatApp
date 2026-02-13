@@ -54,7 +54,11 @@ export function NewChatModal({ onStartChat, isPending, isOpen, onClose }) {
                   className="btn btn-ghost w-full justify-start gap-3 normal-case"
                 >
                   <div className="relative">
-                    <img src={u.avatar} className="h-10 w-10 rounded-full" />
+                    <img
+                      src={u.avatar}
+                      alt={u.name ? `${u.name}'s avatar` : "User avatar"}
+                      className="h-10 w-10 rounded-full"
+                    />
                     {isOnline(u._id) && (
                       <span className="bg-success border-base-200 absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2" />
                     )}

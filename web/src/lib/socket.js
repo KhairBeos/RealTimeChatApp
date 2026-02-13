@@ -1,24 +1,32 @@
-import { create } from "zustand";
 import { io } from "socket.io-client";
+import { create } from "zustand";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL;
+if (!SOCKET_URL) {
+  throw new Error("VITE_API_URL environment variable is not set");
+}
 
 export const useSocketStore = create((set, get) => ({
   socket: null,
   onlineUsers: new Set(),
-  typingUsers: new Map(), // chatId -> userId
+  typingUsers: new Map(), // chatId -> Set<userId>
   queryClient: null,
 
   connect: (token, queryClient) => {
     const existingSocket = get().socket;
     if (existingSocket?.connected || !queryClient) return;
 
-    if (existingSocket) existingSocket.disconnect();
+    if (existingSocket) {
+      existingSocket.removeAllListeners();
+      existingSocket.disconnect();
+    }
 
     const socket = io(SOCKET_URL, { auth: { token } });
 
     socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
+      if (import.meta.env.DEV) {
+        console.log("Socket connected:", socket.id);
+      }
     });
 
     socket.on("connect_error", (error) => {
@@ -50,8 +58,18 @@ export const useSocketStore = create((set, get) => ({
     socket.on("typing", ({ userId, chatId, isTyping }) => {
       set((state) => {
         const typingUsers = new Map(state.typingUsers);
-        if (isTyping) typingUsers.set(chatId, userId);
-        else typingUsers.delete(chatId);
+        const chatTypingUsers = new Set(typingUsers.get(chatId) || []);
+        if (isTyping) {
+          chatTypingUsers.add(userId);
+        } else {
+          chatTypingUsers.delete(userId);
+        }
+
+        if (chatTypingUsers.size > 0) {
+          typingUsers.set(chatId, chatTypingUsers);
+        } else {
+          typingUsers.delete(chatId);
+        }
         return { typingUsers };
       });
     });
@@ -61,7 +79,15 @@ export const useSocketStore = create((set, get) => ({
 
       queryClient.setQueryData(["messages", message.chat], (old) => {
         if (!old) return [message];
-        const filtered = old.filter((m) => !m._id.startsWith("temp-"));
+        const filtered = old.filter(
+          (m) =>
+            !(
+              m._id?.startsWith("temp-") &&
+              m.chat === message.chat &&
+              m.text === message.text &&
+              m.sender?._id === senderId
+            ),
+        );
         const exists = filtered.some((m) => m._id === message._id);
         return exists ? filtered : [...filtered, message];
       });
@@ -97,6 +123,7 @@ export const useSocketStore = create((set, get) => ({
   disconnect: () => {
     const socket = get().socket;
     if (socket) {
+      socket.removeAllListeners();
       socket.disconnect();
       set({
         socket: null,
@@ -115,7 +142,7 @@ export const useSocketStore = create((set, get) => ({
     get().socket?.emit("leave-chat", chatId);
   },
 
-   sendMessage: (chatId, text, currentUser) => {
+  sendMessage: (chatId, text, currentUser) => {
     const { socket, queryClient } = get();
     if (!socket?.connected || !queryClient) return;
 
@@ -140,18 +167,18 @@ export const useSocketStore = create((set, get) => ({
       return [...old, optimisticMessage];
     });
 
-    socket.emit("send-message", { chatId, text });
-
     socket.once("socket-error", () => {
+      console.error("Failed to send message");
       queryClient.setQueryData(["messages", chatId], (old) => {
         if (!old) return [];
         return old.filter((m) => m._id !== tempId);
       });
     });
+
+    socket.emit("send-message", { chatId, text });
   },
 
   setTyping: (chatId, isTyping) => {
     get().socket?.emit("typing", { chatId, isTyping });
   },
-
 }));

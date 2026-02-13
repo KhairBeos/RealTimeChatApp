@@ -3,9 +3,8 @@ import { useSocketStore } from "../lib/socket";
 export function ChatHeader({ participant, chatId }) {
   const { onlineUsers, typingUsers } = useSocketStore();
   const isOnline = onlineUsers.has(participant?._id);
-  // const isTyping = !!typingUsers.get(chatId);
-  const typingUserId = typingUsers.get(chatId);
-  const isTyping = typingUserId && typingUserId === participant?._id;
+  const typingUserIds = typingUsers.get(chatId) || new Set();
+  const isTyping = participant?._id ? typingUserIds.has(participant._id) : false;
 
   return (
     <div className="border-base-300 bg-base-200/80 flex h-16 items-center gap-4 border-b px-6">

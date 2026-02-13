@@ -15,7 +15,11 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useMessages } from "../hooks/useMessages";
 
 function ChatPage() {
-  const { data: currentUser } = useCurrentUser();
+  const {
+    data: currentUser,
+    isLoading: currentUserLoading,
+    isError: currentUserError,
+  } = useCurrentUser();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeChatId = searchParams.get("chat");
@@ -28,7 +32,7 @@ function ChatPage() {
 
   const { socket, setTyping, sendMessage } = useSocketStore();
 
-  useSocketConnection();
+  useSocketConnection(activeChatId);
 
   const { data: chats = [], isLoading: chatsLoading } = useChats();
   const { data: messages = [], isLoading: messagesLoading } = useMessages(activeChatId);
@@ -39,6 +43,12 @@ function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeChatId, messages]);
 
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
+
   const handleStartChat = (participantId) => {
     startChatMutation.mutate(participantId, {
       onSuccess: (chat) => setSearchParams({ chat: chat._id }),
@@ -47,7 +57,16 @@ function ChatPage() {
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!messageInput.trim() || !activeChatId || !socket || !currentUser) return;
+    if (
+      !messageInput.trim() ||
+      !activeChatId ||
+      !socket ||
+      !currentUser ||
+      currentUserLoading ||
+      currentUserError
+    ) {
+      return;
+    }
 
     const text = messageInput.trim();
     sendMessage(activeChatId, text, currentUser);
@@ -67,6 +86,7 @@ function ChatPage() {
   };
 
   const activeChat = chats.find((c) => c._id === activeChatId);
+  const isUserReady = !!currentUser && !currentUserLoading && !currentUserError;
 
   return (
     <div className="bg-base-100 text-base-content flex h-screen">
@@ -77,8 +97,8 @@ function ChatPage() {
           <div className="mb-4 flex items-center justify-between">
             <Link to="/chat" className="flex items-center gap-2">
               <div
-                className="bg-linear-to-br flex h-8 w-8 items-center
-               justify-center rounded-lg from-amber-400 to-orange-500"
+                className="flex h-8 w-8 items-center justify-center
+               rounded-lg bg-gradient-to-br from-amber-400 to-orange-500"
               >
                 <SparklesIcon className="text-primary-content h-4 w-4" />
               </div>
@@ -88,8 +108,8 @@ function ChatPage() {
           </div>
           <button
             onClick={() => setIsNewChatModalOpen(true)}
-            className="btn btn-primary btn-block bg-linear-to-r gap-2 rounded-xl
-             border-none from-amber-500 to-orange-500"
+            className="btn btn-primary btn-block gap-2 rounded-xl border-none
+             bg-gradient-to-r from-amber-500 to-orange-500"
           >
             <PlusIcon className="h-4 w-4" />
             New Chat
@@ -147,8 +167,15 @@ function ChatPage() {
               value={messageInput}
               onChange={handleTyping}
               onSubmit={handleSend}
-              disabled={!messageInput.trim()}
+              disabled={!messageInput.trim() || !isUserReady}
             />
+            {(currentUserLoading || currentUserError) && (
+              <div className="text-base-content/60 px-6 pb-4 text-xs">
+                {currentUserLoading
+                  ? "Loading your profile..."
+                  : "Unable to load your profile. Try again."}
+              </div>
+            )}
           </>
         ) : (
           <NoChatSelectedUI />
@@ -191,10 +218,10 @@ function NoMessagesUI() {
 function NoChatSelectedUI() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-      <div className="bg-linear-to-br mb-6 flex h-20 w-20 items-center justify-center rounded-3xl from-amber-500/20 to-orange-500/20">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
         <MessageSquareIcon className="h-10 w-10 text-amber-400" />
       </div>
-      <h2 className="mb-2 text-2xl font-bold">Welcome to Whisper</h2>
+      <h2 className="mb-2 text-2xl font-bold">Welcome to ChatLorVCL</h2>
       <p className="text-base-content/70 max-w-sm">
         Select a conversation from the sidebar or start a new chat to begin messaging
       </p>

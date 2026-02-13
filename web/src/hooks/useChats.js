@@ -35,7 +35,7 @@ export const useGetOrCreateChat = () => {
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      return res.data?.chat ?? [];
+      return res.data?.chat ?? null;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chats"] }),
   });

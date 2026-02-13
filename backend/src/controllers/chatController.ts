@@ -20,7 +20,7 @@ export async function getChats(req: AuthRequest, res: Response, next: NextFuncti
       return {
         _id: chat._id,
         participant: otherParticipants ?? null,
-        latestMessage: chat.lastMessage,
+        lastMessage: chat.lastMessage,
         lastMessageAt: chat.lastMessageAt,
         createdAt: chat.createdAt,
       };
@@ -76,7 +76,7 @@ export async function getOrCreateChat(req: AuthRequest, res: Response, next: Nex
       chat: {
         _id: chat._id,
         participant: otherParticipant ?? null,
-        latestMessage: chat.lastMessage,
+        lastMessage: chat.lastMessage,
         lastMessageAt: chat.lastMessageAt,
         createdAt: chat.createdAt,
       },

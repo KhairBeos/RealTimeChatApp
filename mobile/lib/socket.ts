@@ -94,7 +94,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
           if (chat._id === message.chat) {
             return {
               ...chat,
-              latestMessage: {
+              lastMessage: {
                 _id: message._id,
                 text: message.text,
                 sender: senderId,

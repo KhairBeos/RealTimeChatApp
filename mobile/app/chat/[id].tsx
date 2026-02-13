@@ -167,7 +167,6 @@ const ChatDetailScreen = () => {
       </View>
 
       {/* Message + Keyboard input */}
-
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}

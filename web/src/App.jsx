@@ -1,21 +1,23 @@
-import './App.css'
-import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/clerk-react'
+import { useAuth } from "@clerk/clerk-react";
+import { Navigate, Route, Routes } from "react-router";
+import PageLoader from "./components/PageLoader";
+import ChatPage from "./page/ChatPage";
+import HomePage from "./page/HomePage";
+import useUserSync from "./hooks/useUserSync";
 
 function App() {
+  const { isLoaded, isSignedIn } = useAuth();
+  useUserSync();
 
+  if (!isLoaded) {
+    return <PageLoader />;
+  }
   return (
-    <>
-      <h1>Welcome to the Realtime Chat App</h1>
-
-      <SignedOut>
-        <SignInButton mode='modal' />
-      </SignedOut>
-
-      <SignedIn>
-        <UserButton />
-      </SignedIn>
-    </>
-  )
+    <Routes>
+      <Route path="/" element={isSignedIn ? <Navigate to="/chat" /> : <HomePage />} />
+      <Route path="/chat" element={isSignedIn ? <ChatPage /> : <Navigate to={"/"} />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

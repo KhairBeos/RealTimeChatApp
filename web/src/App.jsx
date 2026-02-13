@@ -1,8 +1,8 @@
 import { useAuth } from "@clerk/clerk-react";
 import { Navigate, Route, Routes } from "react-router";
 import PageLoader from "./components/PageLoader";
-import ChatPage from "./page/ChatPage";
-import HomePage from "./page/HomePage";
+import ChatPage from "./pages/ChatPage";
+import HomePage from "./pages/HomePage";
 import useUserSync from "./hooks/useUserSync";
 
 function App() {

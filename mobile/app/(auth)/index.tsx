@@ -1,10 +1,10 @@
 import { AnimatedOrb } from "@/components/AnimatedOrb";
 import useAuthSocial from "@/hooks/useSocialAuth";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ActivityIndicator, Dimensions, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 
 const { width, height } = Dimensions.get("window");
 
@@ -21,7 +21,7 @@ const AuthScreen = () => {
           end={{ x: 1, y: 1 }}
         />
 
-         <AnimatedOrb
+        <AnimatedOrb
           colors={["#F4A261", "#E76F51"]}
           size={300}
           initialX={-80}
@@ -87,47 +87,71 @@ const AuthScreen = () => {
           </View>
 
           {/* Auth Buttons Section */}
-          <View className="mt-10 flex-row gap-4">
+          <View className="mt-10 w-full gap-4">
             {/* Google Sign-In Button */}
-            <Pressable
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-4 active:scale-[0.97]"
-              disabled={isLoading}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in with Google"
-              onPress={() => !isLoading && handleSocialAuth("oauth_google")}
-            >
-              {loadingStrategy === "oauth_google" ? (
-                <ActivityIndicator size="small" color="#1a1a1a" />
-              ) : (
-                <>
-                  <Image
-                    source={require("../../assets/images/google.png")}
-                    style={{ width: 20, height: 20 }}
-                    contentFit="contain"
-                  />
-                  <Text className="text-sm font-semibold text-gray-900">Google</Text>
-                </>
-              )}
-            </Pressable>
+            <View className="flex-row gap-4">
+              <Pressable
+                className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-4 active:scale-[0.97]"
+                disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Google"
+                onPress={() => !isLoading && handleSocialAuth("oauth_google")}
+              >
+                {loadingStrategy === "oauth_google" ? (
+                  <ActivityIndicator size="small" color="#1a1a1a" />
+                ) : (
+                  <>
+                    <Image
+                      source={require("../../assets/images/google.png")}
+                      style={{ width: 20, height: 20 }}
+                      contentFit="contain"
+                    />
+                    <Text className="text-sm font-semibold text-gray-900">Google</Text>
+                  </>
+                )}
+              </Pressable>
 
-            {/* Github Sign-In Button */}
+              {/* Github Sign-In Button */}
+              <Pressable
+                className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-4 active:scale-[0.97]"
+                disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Github"
+                onPress={() => !isLoading && handleSocialAuth("oauth_github")}
+              >
+                {loadingStrategy === "oauth_github" ? (
+                  <ActivityIndicator size="small" color="#1a1a1a" />
+                ) : (
+                  <>
+                    <Image
+                      source={require("../../assets/images/github.png")}
+                      style={{ width: 20, height: 20 }}
+                      contentFit="contain"
+                    />
+                    <Text className="text-sm font-semibold text-gray-900">GitHub</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+
+            {/* Facebook Sign-In Button */}
             <Pressable
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-white py-4 active:scale-[0.97]"
+              className="flex-row items-center justify-center gap-2 rounded-2xl bg-white py-4 active:scale-[0.97]"
               disabled={isLoading}
               accessibilityRole="button"
-              accessibilityLabel="Sign in with Github"
-              onPress={() => !isLoading && handleSocialAuth("oauth_github")}
+              accessibilityLabel="Sign in with Facebook"
+              onPress={() => !isLoading && handleSocialAuth("oauth_facebook")}
             >
-              {loadingStrategy === "oauth_github" ? (
+              {loadingStrategy === "oauth_facebook" ? (
                 <ActivityIndicator size="small" color="#1a1a1a" />
               ) : (
                 <>
                   <Image
-                    source={require("../../assets/images/github.png")}
+                    source={require("../../assets/images/facebook.png")}
                     style={{ width: 20, height: 20 }}
                     contentFit="contain"
                   />
-                  <Text className="text-sm font-semibold text-gray-900">GitHub</Text>
+                  <Text className="text-sm font-semibold text-gray-900">Facebook</Text>
                 </>
               )}
             </Pressable>

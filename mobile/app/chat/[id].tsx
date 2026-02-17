@@ -1,6 +1,7 @@
 import EmptyUI from "@/components/EmptyUI";
 import MessageBubble from "@/components/MessageBubble";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useChats } from "@/hooks/useChats";
 import { useMessages } from "@/hooks/useMessages";
 import { useSocketStore } from "@/lib/socket";
 import { MessageSender } from "@/types";
@@ -10,6 +11,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -31,12 +33,24 @@ type ChatParams = {
 const ChatDetailScreen = () => {
   const { id: chatId, avatar, name, participantId } = useLocalSearchParams<ChatParams>();
 
+  const normalizeParam = (value?: string | string[]) => {
+    if (Array.isArray(value)) return value[0] ?? "";
+    return value ?? "";
+  };
+
+  const normalizedChatId = normalizeParam(chatId);
+  const normalizedParticipantId = normalizeParam(participantId);
+
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const { data: currentUser } = useCurrentUser();
-  const { data: messages, isLoading } = useMessages(chatId);
+  const { data: chats } = useChats();
+  const { data: messages, isLoading } = useMessages(normalizedChatId);
+  const chatParticipantId =
+    chats?.find((chat) => chat._id === normalizedChatId)?.participant?._id ?? "";
+  const resolvedParticipantId = normalizedParticipantId || chatParticipantId;
 
   // Dùng selector để chỉ subscribe vào các fields cần thiết
   // Tránh re-render khi những field khác thay đổi
@@ -48,28 +62,28 @@ const ChatDetailScreen = () => {
   const onlineUsers = useSocketStore((state) => state.onlineUsers);
   const typingUsers = useSocketStore((state) => state.typingUsers);
 
-  const isOnline = participantId ? onlineUsers.has(participantId) : false;
-  const isTyping = typingUsers.get(chatId) === participantId;
+  const isOnline = !!resolvedParticipantId && onlineUsers.has(String(resolvedParticipantId));
+  const isTyping = typingUsers.get(normalizedChatId) === resolvedParticipantId;
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalMessageCountRef = useRef(0);
 
   useEffect(() => {
-    if (chatId && isConnected) joinChat(chatId);
+    if (normalizedChatId && isConnected) joinChat(normalizedChatId);
 
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
-      if (chatId) {
+      if (normalizedChatId) {
         if (isConnected) {
-          sendTyping(chatId, false);
+          sendTyping(normalizedChatId, false);
         }
-        leaveChat(chatId);
+        leaveChat(normalizedChatId);
       }
     };
-  }, [chatId, isConnected, joinChat, leaveChat, sendTyping]);
+  }, [normalizedChatId, isConnected, joinChat, leaveChat, sendTyping]);
 
   // Reset isSending khi message được thêm vào list (tức là server confirmed)
   useEffect(() => {
@@ -92,26 +106,26 @@ const ChatDetailScreen = () => {
     (text: string) => {
       setMessageText(text);
 
-      if (!isConnected || !chatId) return;
+      if (!isConnected || !normalizedChatId) return;
 
       if (text.length > 0) {
-        sendTyping(chatId, true);
+        sendTyping(normalizedChatId, true);
 
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
 
         typingTimeoutRef.current = setTimeout(() => {
-          sendTyping(chatId, false);
+          sendTyping(normalizedChatId, false);
         }, 2000);
       } else {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        sendTyping(chatId, false);
+        sendTyping(normalizedChatId, false);
       }
     },
-    [chatId, isConnected, sendTyping],
+    [normalizedChatId, isConnected, sendTyping],
   );
 
   const handleSendMessage = () => {
@@ -123,10 +137,10 @@ const ChatDetailScreen = () => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    sendTyping(chatId, false);
+    sendTyping(normalizedChatId, false);
 
     setIsSending(true);
-    sendMessage(chatId, messageText.trim(), {
+    sendMessage(normalizedChatId, messageText.trim(), {
       _id: currentUser._id,
       name: currentUser.name,
       email: currentUser.email,
@@ -139,39 +153,41 @@ const ChatDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
-      {/* Header */}
-      <View className="flex-row items-center border-b border-surface-light bg-surface px-4 py-2">
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#F4A261" />
-        </Pressable>
-        <View className="ml-2 flex-1 flex-row items-center">
-          {avatar && <Image source={avatar} style={{ width: 40, height: 40, borderRadius: 999 }} />}
-          <View className="ml-3">
-            <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-              {name}
-            </Text>
-            <Text className={`text-xs ${isTyping ? "text-primary" : "text-muted-foreground"}`}>
-              {isTyping ? "typing..." : isOnline ? "Online" : "Offline"}
-            </Text>
-          </View>
-        </View>
-        <View className="flex-row items-center gap-3">
-          <Pressable className="h-9 w-9 items-center justify-center rounded-full">
-            <Ionicons name="call-outline" size={20} color="#A0A0A5" />
-          </Pressable>
-          <Pressable className="h-9 w-9 items-center justify-center rounded-full">
-            <Ionicons name="videocam-outline" size={20} color="#A0A0A5" />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Message + Keyboard input */}
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 4 : 0}
       >
+        {/* Header */}
+        <View className="flex-row items-center border-b border-surface-light bg-surface px-4 py-2">
+          <Pressable onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#F4A261" />
+          </Pressable>
+          <View className="ml-2 flex-1 flex-row items-center">
+            {avatar && (
+              <Image source={avatar} style={{ width: 40, height: 40, borderRadius: 999 }} />
+            )}
+            <View className="ml-3">
+              <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
+                {name}
+              </Text>
+              <Text className={`text-xs ${isTyping ? "text-primary" : "text-muted-foreground"}`}>
+                {isTyping ? "typing..." : isOnline ? "Online" : "Offline"}
+              </Text>
+            </View>
+          </View>
+          <View className="flex-row items-center gap-3">
+            <Pressable className="h-9 w-9 items-center justify-center rounded-full">
+              <Ionicons name="call-outline" size={20} color="#A0A0A5" />
+            </Pressable>
+            <Pressable className="h-9 w-9 items-center justify-center rounded-full">
+              <Ionicons name="videocam-outline" size={20} color="#A0A0A5" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Message + Keyboard input */}
         <View className="flex-1 bg-surface">
           {isLoading ? (
             <View className="flex-1 items-center justify-center">
@@ -189,6 +205,8 @@ const ChatDetailScreen = () => {
             <ScrollView
               ref={scrollViewRef}
               contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+              keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+              keyboardShouldPersistTaps="handled"
               onContentSizeChange={() => {
                 scrollViewRef.current?.scrollToEnd({ animated: false });
               }}
@@ -203,8 +221,8 @@ const ChatDetailScreen = () => {
           )}
 
           {/* Input bar */}
-          <View className="border-t border-surface-light bg-surface px-3 pb-3 pt-2">
-            <View className="flex-row items-end gap-2 rounded-3xl bg-surface-card px-3 py-1.5">
+          <View className="border-t border-surface-light bg-surface px-3 pb-6 pt-2">
+            <View className="flex-row items-end gap-2 rounded-3xl bg-surface-card px-3 py-1">
               <Pressable className="h-8 w-8 items-center justify-center rounded-full">
                 <Ionicons name="add" size={22} color="#F4A261" />
               </Pressable>
@@ -212,18 +230,27 @@ const ChatDetailScreen = () => {
               <TextInput
                 placeholder="Type a message"
                 placeholderTextColor="#6B6B70"
-                className="mb-2 flex-1 text-sm text-foreground"
+                className="flex-1 py-2 text-sm text-foreground"
                 multiline
                 style={{ maxHeight: 100 }}
                 value={messageText}
                 onChangeText={handleTyping}
                 onSubmitEditing={handleSendMessage}
                 editable={!isSending}
+                returnKeyType="send"
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 50);
+                }}
               />
 
               <Pressable
                 className="h-8 w-8 items-center justify-center rounded-full bg-primary"
-                onPress={handleSendMessage}
+                onPress={() => {
+                  handleSendMessage();
+                  Keyboard.dismiss();
+                }}
                 disabled={!messageText.trim() || isSending}
               >
                 {isSending ? (

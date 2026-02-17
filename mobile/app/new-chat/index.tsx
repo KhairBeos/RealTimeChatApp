@@ -30,8 +30,8 @@ const NewChatScreen = () => {
           router.push({
             pathname: "/chat/[id]",
             params: {
-              id: chat._id,
-              participantId: chat.participant?._id ?? "",
+              id: String(chat._id),
+              participantId: chat.participant?._id ? String(chat.participant._id) : "",
               name: chat.participant?.name ?? "Unknown",
               avatar: chat.participant?.avatar ?? "",
             },

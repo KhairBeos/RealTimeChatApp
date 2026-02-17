@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
-  KeyboardEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -34,15 +33,6 @@ type ChatParams = {
 const ChatDetailScreen = () => {
   const { id: chatId, avatar, name, participantId } = useLocalSearchParams<ChatParams>();
 
-  const [messageText, setMessageText] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  const { data: currentUser } = useCurrentUser();
-  const { data: chats } = useChats();
-  const { data: messages, isLoading } = useMessages(chatId);
-
   const normalizeParam = (value?: string | string[]) => {
     if (Array.isArray(value)) return value[0] ?? "";
     return value ?? "";
@@ -50,6 +40,14 @@ const ChatDetailScreen = () => {
 
   const normalizedChatId = normalizeParam(chatId);
   const normalizedParticipantId = normalizeParam(participantId);
+
+  const [messageText, setMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const { data: currentUser } = useCurrentUser();
+  const { data: chats } = useChats();
+  const { data: messages, isLoading } = useMessages(normalizedChatId);
   const chatParticipantId =
     chats?.find((chat) => chat._id === normalizedChatId)?.participant?._id ?? "";
   const resolvedParticipantId = normalizedParticipantId || chatParticipantId;
@@ -103,29 +101,6 @@ const ChatDetailScreen = () => {
       }, 100);
     }
   }, [messages]);
-
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-
-    const onKeyboardShow = (event: KeyboardEvent) => {
-      setAndroidKeyboardHeight(event.endCoordinates.height);
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-    };
-
-    const onKeyboardHide = () => {
-      setAndroidKeyboardHeight(0);
-    };
-
-    const showSubscription = Keyboard.addListener("keyboardDidShow", onKeyboardShow);
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", onKeyboardHide);
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   const handleTyping = useCallback(
     (text: string) => {
@@ -246,11 +221,8 @@ const ChatDetailScreen = () => {
           )}
 
           {/* Input bar */}
-          <View
-            className="border-t border-surface-light bg-surface px-3 pb-6 pt-2"
-            style={Platform.OS === "android" ? { marginBottom: androidKeyboardHeight } : undefined}
-          >
-            <View className="flex-row items-center gap-2 rounded-3xl bg-surface-card px-3 py-1">
+          <View className="border-t border-surface-light bg-surface px-3 pb-6 pt-2">
+            <View className="flex-row items-end gap-2 rounded-3xl bg-surface-card px-3 py-1">
               <Pressable className="h-8 w-8 items-center justify-center rounded-full">
                 <Ionicons name="add" size={22} color="#F4A261" />
               </Pressable>
